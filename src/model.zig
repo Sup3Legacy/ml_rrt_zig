@@ -6,7 +6,7 @@ pub const Coords = struct {
     x: f64,
     y: f64,
 
-    pub fn dir(a: *@This(), b: *@This(), c: *@This()) usize {
+    pub fn dir(a: *@This(), b: *@This(), c: *@This()) u8 {
         var disc = (b.y - a.y) * (c.x - b.x) - (b.x - a.x) * (c.y - b.y);
         if (disc == 0) {
             return 0;
@@ -147,7 +147,9 @@ const JointNode = struct {
     allocator: Allocator,
 
     fn push(this: *@This(), item: *Joint) *JointNode {
-        var new_node = this.allocator.create(JointNode) catch {unreachable;};
+        var new_node = this.allocator.create(JointNode) catch {
+            unreachable;
+        };
         new_node.data = item;
         // Doesn't matter if the local total offset if not properly initialized.
         // This will get taken care of on the next forward
@@ -181,8 +183,12 @@ pub const Object = struct {
     children: std.ArrayList(Part),
 
     pub fn to_rects(this: *@This(), alloc: Allocator) RectList {
-        var first_node = alloc.create(JointNode) catch {unreachable;};
-        var first_joint = alloc.create(Joint) catch {unreachable;};
+        var first_node = alloc.create(JointNode) catch {
+            unreachable;
+        };
+        var first_joint = alloc.create(Joint) catch {
+            unreachable;
+        };
         first_joint.child = Object{
             .root = Coords{ .theta = 0.0, .x = 0.0, .y = 0.0 },
             .children = std.ArrayList(Part).init(alloc),
@@ -268,6 +274,7 @@ pub const RectList = struct {
             j = 0;
             while (j < l) : (j += 1) {
                 if (i == j) {
+                    // Obviously do not consider this case
                     break;
                 }
                 var r1 = &this.rects.items[i];
@@ -278,5 +285,38 @@ pub const RectList = struct {
             }
         }
         return false;
+    }
+};
+
+pub const Scene = struct {
+    static: RectList,
+    mobile: RectList,
+
+    pub fn update(this: *@This()) void {
+        this.static.update();
+        this.mobile.update();
+    }
+
+    fn collides_inter(this: *@This()) bool {
+        var l_i: usize = this.static.rects.items.length;
+        var l_j: usize = this.mobile.rects.items.length;
+        var i: usize = 0;
+        var j: usize = 0;
+
+        while (i < l_i) : (i += 1) {
+            j = 0;
+            while (j < l_j) : (j += 1) {
+                var r1 = &this.static.rects.items[i];
+                var r2 = &this.mobile.rects.items[j];
+                if (r1.collides(r2)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    pub fn collides(this: *@This()) bool {
+        return this.static.collides() or this.mobile.collides() or this.collides_inter();
     }
 };
