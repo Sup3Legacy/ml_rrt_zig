@@ -320,3 +320,7 @@ pub const Scene = struct {
         return this.static.collides() or this.mobile.collides() or this.collides_inter();
     }
 };
+
+pub const State = struct {
+    configs: std.ArrayList[Coords],
+};
